@@ -1,0 +1,1042 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="John Doe">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="2026 年 10 月 20 日晚上，安全圈的群里开始流传两个还没正式公布的 CVE 编号。到 21 日凌晨，包含「php2shell」攻击链的演示视频已经出现在社交平台上，watchTowr 确认复现了其中一个。PHP 官方原本计划 22 日做的协调披露，被迫提前到了 21 日。 被泄露的两个漏洞是 CVE-2026-109618 和 CVE-2026-109619，官方评级都是 CVSS v4">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PHP2Shell 核弹漏洞全记录：CVSS 9.2 的 PHP 内核 RCE，如何发现、如何自查、如何修复">
+<meta property="og:url" content="http://example.com/2026/10/22/PHP2Shell%E6%BC%8F%E6%B4%9E%E5%BA%94%E6%80%A5%E6%8C%87%E5%8D%97/index.html">
+<meta property="og:site_name" content="网络安全小知识">
+<meta property="og:description" content="2026 年 10 月 20 日晚上，安全圈的群里开始流传两个还没正式公布的 CVE 编号。到 21 日凌晨，包含「php2shell」攻击链的演示视频已经出现在社交平台上，watchTowr 确认复现了其中一个。PHP 官方原本计划 22 日做的协调披露，被迫提前到了 21 日。 被泄露的两个漏洞是 CVE-2026-109618 和 CVE-2026-109619，官方评级都是 CVSS v4">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-22T14:10:00.000Z">
+<meta property="article:modified_time" content="2026-10-22T14:17:32.296Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="漏洞预警">
+<meta property="article:tag" content="PHP">
+<meta property="article:tag" content="RCE">
+<meta property="article:tag" content="应急响应">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>PHP2Shell 核弹漏洞全记录：CVSS 9.2 的 PHP 内核 RCE，如何发现、如何自查、如何修复 - 网络安全小知识</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"hPpMOaDBt9mWTjAEEUjkSxLY-gzGzoHsz","app_key":"HnSdNTA2kh2A874GAQ3P6IpG","server_url":"https://hppmoadb.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+    <!-- Google tag (gtag.js) -->
+    <script async>
+      if (!Fluid.ctx.dnt) {
+        Fluid.utils.createScript("https://www.googletagmanager.com/gtag/js?id=", function() {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            dataLayer.push(arguments);
+          }
+          gtag('js', new Date());
+          gtag('config', '');
+        });
+      }
+    </script>
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>灰色紫寂</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="PHP2Shell 核弹漏洞全记录：CVSS 9.2 的 PHP 内核 RCE，如何发现、如何自查、如何修复"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-22 22:10" pubdate>
+          2026年10月22日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          5.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          44 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span>次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">PHP2Shell 核弹漏洞全记录：CVSS 9.2 的 PHP 内核 RCE，如何发现、如何自查、如何修复</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p>2026 年 10 月 20 日晚上，安全圈的群里开始流传两个还没正式公布的 CVE 编号。到 21 日凌晨，包含「php2shell」攻击链的演示视频已经出现在社交平台上，watchTowr 确认复现了其中一个。PHP 官方原本计划 22 日做的协调披露，被迫提前到了 21 日。</p>
+<p>被泄露的两个漏洞是 <strong>CVE-2026-109618</strong> 和 <strong>CVE-2026-109619</strong>，官方评级都是 CVSS v4.0 <strong>9.2</strong>，类型是<strong>未认证远程代码执行</strong>。PHP 安全团队的原话是「十多年来 PHP 面临的最严重安全事件」。</p>
+<p>这篇把三件事讲清楚：这个洞是怎么被找到的、你的服务器到底中不中、以及除升级之外哪些动作纯属自我安慰。</p>
+<h2 id="一、72-小时时间线"><a href="#一、72-小时时间线" class="headerlink" title="一、72 小时时间线"></a>一、72 小时时间线</h2><table>
+<thead>
+<tr>
+<th>时间（2026）</th>
+<th>事件</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>2024 年</td>
+<td>PHP 核心开发者注意到相关内存问题的早期迹象，但找不到利用路径，修复停滞</td>
+</tr>
+<tr>
+<td>8 月</td>
+<td>研究员借助 AI 模型把内存缺陷转化为可用的 RCE 链；Wiz 用 AI 代理独立发现，次日打出 Drupal 未认证 RCE</td>
+</tr>
+<tr>
+<td>10 月 20 日</td>
+<td>匿名帖在 Hacker News 等平台泄露两个 CVE 编号与细节，随后被删除，但已扩散</td>
+</tr>
+<tr>
+<td>10 月 20 日</td>
+<td>PHP 官方发布安全更新预告，同时罕见声明「若细节公开或出现野外利用，保留提前发布的权利」</td>
+</tr>
+<tr>
+<td>10 月 21 日</td>
+<td>官方发布 8.5.12 &#x2F; 8.4.27 &#x2F; 8.3.36 &#x2F; 8.2.35，比原计划早一天</td>
+</tr>
+<tr>
+<td>10 月 21–22 日</td>
+<td>CISA、CERT-EU、英国 NCSC、澳洲 ACSC 相继发布紧急警告；CNVD 发布修复风险提示（CNTA-2026-0006）</td>
+</tr>
+</tbody></table>
+<p>注意这条时间线的形状：<strong>漏洞细节和利用工具，跑在了补丁前面。</strong> 传统披露里防守方有几天到几周的缓冲，这次是零，甚至是负数。</p>
+<h2 id="二、为什么它能叫「核弹级」"><a href="#二、为什么它能叫「核弹级」" class="headerlink" title="二、为什么它能叫「核弹级」"></a>二、为什么它能叫「核弹级」</h2><p>不是标题党，有三个叠加因素。</p>
+<p><strong>第一，漏洞在解释器内核，不在扩展、不在框架。</strong> 你用的是 WordPress、Laravel、ThinkPHP 还是自己写的一坨原生代码，没有任何区别——只要底下这个 PHP 运行时没修，风险一样。这也意味着「我们没用那个组件」这类排除法全部失效。</p>
+<p><strong>第二，不需要认证。</strong> 一个构造好的 HTTP 请求就够了，不需要账号、不需要后台入口、不需要任何前置条件。</p>
+<p><strong>第三，PHP 的存量太大了。</strong> PHP 在已知服务端编程语言中的占比长期在七成以上。按「泄露演示涉及的框架」做的资产测绘，量级是这样的：</p>
+<table>
+<thead>
+<tr>
+<th>应用 &#x2F; 框架</th>
+<th>全球可探测资产</th>
+<th>国内资产</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>WordPress</td>
+<td>7,226 万</td>
+<td>88.7 万</td>
+</tr>
+<tr>
+<td>Drupal</td>
+<td>169.7 万</td>
+<td>6.08 万</td>
+</tr>
+<tr>
+<td>Joomla</td>
+<td>100.0 万</td>
+<td>1.27 万</td>
+</tr>
+<tr>
+<td>Laravel</td>
+<td>40.6 万</td>
+<td>6.57 万</td>
+</tr>
+<tr>
+<td>MediaWiki</td>
+<td>14.3 万</td>
+<td>1,849</td>
+</tr>
+<tr>
+<td>ThinkPHP（未在演示中，建议一并排查）</td>
+<td>57.3 万</td>
+<td>44.4 万</td>
+</tr>
+</tbody></table>
+<p>（数据来源为第三方测绘平台，仅作排查范围参考，不代表官方确认。）</p>
+<p>更麻烦的是<strong>部署形态全覆盖</strong>：PHP-FPM、Apache 的 mod_php、php-cgi、FrankenPHP、LiteSpeed 都在影响范围内。官方特别点名 <strong>mod_php 风险最高</strong>——已有演示表明，一个未认证请求可以在<strong>任何应用代码执行之前</strong>触发攻击。也就是说你的业务代码、你的框架中间件、你的入口过滤，在这条链路上根本没有出场机会。</p>
+<h2 id="三、两个洞到底错在哪"><a href="#三、两个洞到底错在哪" class="headerlink" title="三、两个洞到底错在哪"></a>三、两个洞到底错在哪</h2><h3 id="CVE-2026-109618：OOM-处理时的内存损坏"><a href="#CVE-2026-109618：OOM-处理时的内存损坏" class="headerlink" title="CVE-2026-109618：OOM 处理时的内存损坏"></a>CVE-2026-109618：OOM 处理时的内存损坏</h3><p>PHP 用 <code>memory_limit</code> 限制单次请求的内存，超限的实现方式是 <code>longjmp()</code>——直接跳走，打断当前执行流程，抛一个内存耗尽的致命错误。</p>
+<p>问题在于，这个「跳走」是硬跳。如果它发生在某个内部数据结构<strong>只初始化了一半</strong>的时刻（比如正在解析表单上传），PHP 就带着一个残缺的状态离开了。等到请求结束做清理，清理代码看到的是「一个合法的结构」，于是去释放那些<strong>从来没被初始化过的指针</strong>。</p>
+<p>而这些内存位置，可能还残留着攻击者在前一次分配里塞进去的数据。清理动作 + 攻击者可控的内存 &#x3D; 可被引导的内存破坏，进而 RCE。</p>
+<p>关键在于：<code>memory_limit</code> 是<strong>用户可以间接影响的</strong>。你发一个足够大的请求，就能把这个限额打爆，也就等于自己按下了跳转的扳机。</p>
+<h3 id="CVE-2026-109619：上一个请求的「残影」"><a href="#CVE-2026-109619：上一个请求的「残影」" class="headerlink" title="CVE-2026-109619：上一个请求的「残影」"></a>CVE-2026-109619：上一个请求的「残影」</h3><p>第二个洞的思路完全不同，它利用的是<strong>进程复用</strong>。</p>
+<p>PHP-FPM 的 worker 是常驻的，一个进程要连续处理成千上万个请求。正常情况下，每个请求开始时会重置全局状态。但如果某个请求的内部状态<strong>在它背后的内存已经被释放之后仍然存在</strong>（例如一次致命错误之后），而这份状态又没被下一次初始化完全覆盖，那么<strong>下一个请求</strong>就会用到这份「过期数据」。</p>
+<p>这是一种典型的状态残留（stale state）问题：单看一个请求它是正常的，问题出在「上一个请求给下一个请求留了什么」。这也是为什么这类漏洞特别难靠常规扫描发现。</p>
+<h3 id="所以「我只用-FPM-不用-mod-php」能免责吗"><a href="#所以「我只用-FPM-不用-mod-php」能免责吗" class="headerlink" title="所以「我只用 FPM 不用 mod_php」能免责吗"></a>所以「我只用 FPM 不用 mod_php」能免责吗</h3><p>不能。FPM 的暴露路径和 mod_php 不同，但同样在影响范围内，而且 FPM 的 worker 复用模型恰恰是第二个洞成立的前提。官方给的判断是：<strong>所有对外提供 Web 请求的 PHP 安装都受影响。</strong></p>
+<h2 id="四、这个洞是怎么被发现的"><a href="#四、这个洞是怎么被发现的" class="headerlink" title="四、这个洞是怎么被发现的"></a>四、这个洞是怎么被发现的</h2><p>这一节可能比漏洞本身更有意思。</p>
+<h3 id="2024-年就有人看见苗头"><a href="#2024-年就有人看见苗头" class="headerlink" title="2024 年就有人看见苗头"></a>2024 年就有人看见苗头</h3><p>PHP 核心开发者在 2024 年就注意到相关内存问题的迹象。但他们<strong>找不到利用路径</strong>，于是修复工作停在那里。</p>
+<p>这是内存安全类漏洞的常态：一个「看起来不对」的指针释放，离「能稳定 RCE」之间隔着很远——要能控制内存布局、要能绕过分配器的随机性、要能在真实 SAPI 里复现而不是在单元测试里。找得到 bug 和打得通利用，是两个难度级别。</p>
+<h3 id="2026-年-8-月，AI-把这段距离抹平了"><a href="#2026-年-8-月，AI-把这段距离抹平了" class="headerlink" title="2026 年 8 月，AI 把这段距离抹平了"></a>2026 年 8 月，AI 把这段距离抹平了</h3><p>公开报道的说法是：安全公司 Calif 的研究员 Ryan Austin 在对 PHP 源码做审计时，借助 OpenAI 的模型，把这一潜伏多年的内存缺陷变成了可工作的 RCE 链。同期，Wiz 用 AI 代理独立发现了第一个漏洞，<strong>次日就实现了针对 Drupal 的未认证代码执行</strong>。</p>
+<p>我不打算在这里讨论「AI 是不是真的挖到了洞」这种口水问题，只说我看到的、对防守方真正有影响的部分：<strong>读代码找内存问题的成本，被显著打下来了。</strong></p>
+<p>以前这类工作依赖少数懂 Zend 引擎内部结构的人，靠年为单位的时间积累直觉。现在一个有源码审计经验、但不懂 PHP 内核的人，可以借助模型做跨函数的追踪和假设生成，把「可疑的 longjmp 路径」一条条筛出来。搜索空间没变，但搜索速度变了。</p>
+<h3 id="披露被打乱，防守窗口直接归零"><a href="#披露被打乱，防守窗口直接归零" class="headerlink" title="披露被打乱，防守窗口直接归零"></a>披露被打乱，防守窗口直接归零</h3><p>原计划的协调披露是 10 月 22 日。10 月 20 日匿名帖出现，附带了两个 CVE 编号；随后攻击链演示视频流出，watchTowr 复现成功。</p>
+<p>于是官方在 21 日提前发版。TechWeb 的报道里提到，有安全公司判断<strong>补丁发布后约 15 分钟就可能开始大规模攻击</strong>；watchTowr 在补丁落地前后已观察到利用尝试，Cloudflare 也报告了攻击流量。</p>
+<h3 id="研究者视角：这类漏洞该怎么找"><a href="#研究者视角：这类漏洞该怎么找" class="headerlink" title="研究者视角：这类漏洞该怎么找"></a>研究者视角：这类漏洞该怎么找</h3><p>如果你也想做这种工作，路径其实是可以复述的，不是玄学：</p>
+<ol>
+<li><strong>盯住「中断路径」</strong>。<code>longjmp</code>、异常、超时、致命错误——所有「执行流被强行打断」的地方，都是「只初始化了一半」的高发区。重点看这些路径触发后，<code>request shutdown</code> 阶段会怎么处理这些半成品。</li>
+<li><strong>用 ASAN 构建 PHP</strong>。内存问题在普通构建下往往只是「偶发崩溃」，在 AddressSanitizer 下会变成明确的「读&#x2F;写已释放内存 + 调用栈」。这一步能把 90% 的噪音过滤掉。</li>
+<li><strong>把阈值调到极限</strong>。既然 618 的入口是 OOM，就把 <code>memory_limit</code> 压到很低，构造刚好越过边界的请求，看清理阶段的行为。漏洞往往藏在「刚好失败」的临界点上。</li>
+<li><strong>做双请求差分</strong>。619 这种状态残留，单请求测试永远发现不了。要写「请求 A 制造异常 → 请求 B 观察状态」的测试，而且必须在<strong>同一个 worker 进程</strong>里连续发。</li>
+<li><strong>Fuzz SAPI 入口</strong>，而不是 fuzz 单个函数。真实攻击面在请求解析层，不在业务函数里。</li>
+</ol>
+<p>这套方法的每一条，恰好都是 AI 模型擅长的事：跨函数追踪数据流、根据调用栈反推前置条件、批量生成边界用例。这大概就是「一年没打通，一夜之间打通」的原因。</p>
+<h2 id="五、自查：你的-PHP-到底跑的是哪个版本"><a href="#五、自查：你的-PHP-到底跑的是哪个版本" class="headerlink" title="五、自查：你的 PHP 到底跑的是哪个版本"></a>五、自查：你的 PHP 到底跑的是哪个版本</h2><p>这是全文最该动手的一节。<strong>判定的核心不是「装了什么」，而是「正在跑的是什么」。</strong></p>
+<h3 id="第-1-步：把资产清全"><a href="#第-1-步：把资产清全" class="headerlink" title="第 1 步：把资产清全"></a>第 1 步：把资产清全</h3><p>别只数网站。真实环境里最容易漏的是这些：</p>
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>典型情况</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Web 站点</td>
+<td>FPM pool、Apache mod_php、IIS + php-cgi</td>
+</tr>
+<tr>
+<td>CLI 脚本</td>
+<td>定时任务、数据导出、运维脚本</td>
+</tr>
+<tr>
+<td>常驻进程</td>
+<td>队列 worker、Swoole &#x2F; RoadRunner 常驻应用</td>
+</tr>
+<tr>
+<td>面板自带</td>
+<td>宝塔、Plesk 的 PHP 与系统 PHP 是<strong>两套独立安装</strong></td>
+</tr>
+<tr>
+<td>容器</td>
+<td>每个镜像都自带一份，宿主升级与它无关</td>
+</tr>
+<tr>
+<td>被遗忘的机器</td>
+<td>测试机、旧虚拟机、外包交付后没人管的服务器</td>
+</tr>
+</tbody></table>
+<p>面板环境要特别提醒一句：<strong>系统级 PHP 和面板托管的 PHP 是两套</strong>。只升级其中一个，站点绑定的 handler 可能还在旧版本上，页面看起来一切正常。</p>
+<h3 id="第-2-步：查版本号"><a href="#第-2-步：查版本号" class="headerlink" title="第 2 步：查版本号"></a>第 2 步：查版本号</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 命令行二进制</span><br>php -v<br><br><span class="hljs-comment"># 所有 PHP 相关二进制（多版本共存时很有用）</span><br><span class="hljs-built_in">ls</span> -l /usr/bin/php* /usr/local/bin/php* 2&gt;/dev/null<br><br><span class="hljs-comment"># Debian / Ubuntu：看包</span><br>dpkg -l | grep -E <span class="hljs-string">&#x27;^ii\s+php&#x27;</span><br><br><span class="hljs-comment"># RHEL / CentOS / Rocky</span><br>rpm -qa | grep -E <span class="hljs-string">&#x27;^php&#x27;</span><br><br><span class="hljs-comment"># 容器</span><br>docker ps --format <span class="hljs-string">&#x27;&#123;&#123;.Names&#125;&#125;\t&#123;&#123;.Image&#125;&#125;&#x27;</span><br>docker <span class="hljs-built_in">exec</span> &lt;container&gt; php -v<br><br><span class="hljs-comment"># Kubernetes</span><br>kubectl get pods -A -o jsonpath=<span class="hljs-string">&#x27;&#123;range .items[*]&#125;&#123;.metadata.name&#125;&#123;&quot;\t&quot;&#125;&#123;.spec.containers[*].image&#125;&#123;&quot;\n&quot;&#125;&#123;end&#125;&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<p>判定标准很直接：</p>
+<table>
+<thead>
+<tr>
+<th>分支</th>
+<th>受影响</th>
+<th>修复版本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>8.5</td>
+<td>&lt; 8.5.12</td>
+<td>8.5.12</td>
+</tr>
+<tr>
+<td>8.4</td>
+<td>&lt; 8.4.27</td>
+<td>8.4.27</td>
+</tr>
+<tr>
+<td>8.3</td>
+<td>&lt; 8.3.36</td>
+<td>8.3.36</td>
+</tr>
+<tr>
+<td>8.2</td>
+<td>&lt; 8.2.35</td>
+<td>8.2.35（该分支 2026-12-31 停止支持）</td>
+</tr>
+<tr>
+<td>8.1 及更早</td>
+<td>受影响</td>
+<td><strong>无官方修复</strong></td>
+</tr>
+</tbody></table>
+<h3 id="第-3-步：查「正在跑的」进程"><a href="#第-3-步：查「正在跑的」进程" class="headerlink" title="第 3 步：查「正在跑的」进程"></a>第 3 步：查「正在跑的」进程</h3><p>这一步比第 2 步重要，而且最容易被跳过。</p>
+<p><code>php -v</code> 输出的是<strong>命令行二进制</strong>的版本。真正对外服务的是 FPM master、Apache 子进程、常驻 worker——它们加载的是<strong>启动那一刻</strong>内存里的代码。你上午 9 点启动的服务，晚上 10 点升级了包，<code>php -v</code> 会告诉你新版本，但正在跑的进程仍然是旧的。</p>
+<p>判断方法只有一个：<strong>比时间。</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 二进制的最后修改时间（= 升级时间）</span><br><span class="hljs-built_in">stat</span> -c <span class="hljs-string">&#x27;%y %n&#x27;</span> /usr/sbin/php-fpm8.3<br><br><span class="hljs-comment"># master 进程的启动时间</span><br>ps -o pid,lstart,cmd -p <span class="hljs-string">&quot;<span class="hljs-subst">$(pgrep -o -f &#x27;php-fpm: master&#x27;)</span>&quot;</span><br><br><span class="hljs-comment"># 或者直接看所有 FPM 进程</span><br>pgrep -a -f <span class="hljs-string">&#x27;php-fpm&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<p>如果<strong>进程启动时间早于二进制修改时间</strong>，那这个进程加载的仍然是旧代码，等于没修。</p>
+<p>容器环境还有一个额外的坑：<code>docker restart</code> <strong>不会</strong>让镜像里的 PHP 变新。镜像里的二进制是构建时打进去的，必须重新构建镜像并滚动更新，确认所有副本都换到新镜像。</p>
+<h3 id="第-4-步：对一眼配置"><a href="#第-4-步：对一眼配置" class="headerlink" title="第 4 步：对一眼配置"></a>第 4 步：对一眼配置</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 当前生效的关键项</span><br>php -i | grep -E <span class="hljs-string">&#x27;memory_limit|post_max_size|upload_max_filesize|session.upload_progress.enabled&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<p>但注意，FPM 的 <code>php_admin_value</code>、pool 配置、<code>.user.ini</code> 都会覆盖 <code>php.ini</code>。真实生效值要看你站点绑定的那个 pool：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 看 pool 配置里的覆盖项</span><br>grep -rE <span class="hljs-string">&#x27;php_admin_value|php_value|memory_limit&#x27;</span> /etc/php/*/fpm/pool.d/ 2&gt;/dev/null<br></code></pre></td></tr></table></figure>
+
+<h3 id="第-5-步：翻日志，看有没有已经被打过"><a href="#第-5-步：翻日志，看有没有已经被打过" class="headerlink" title="第 5 步：翻日志，看有没有已经被打过"></a>第 5 步：翻日志，看有没有已经被打过</h3><p>这个洞有个特点：<strong>它在应用代码之前触发。</strong> 所以业务日志很可能干干净净，什么异常都没有。要看的反而是底层的日志：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># FPM 日志里的崩溃和 OOM</span><br>grep -Ei <span class="hljs-string">&#x27;out of memory|exited on signal|SIGSEGV|zend_mm_heap corrupted|failed to ptrace&#x27;</span> /var/log/php*-fpm.log<br><br><span class="hljs-comment"># Apache 子进程崩溃</span><br>grep -Ei <span class="hljs-string">&#x27;Segmentation fault|exit signal&#x27;</span> /var/log/apache2/error.log<br><br><span class="hljs-comment"># 内核层面的段错误记录</span><br>dmesg -T | grep -i <span class="hljs-string">&#x27;segfault&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<p>值得关注的现象：</p>
+<ul>
+<li>worker 反复因 <code>SIGSEGV</code> 退出、被 master 重启，表现为间歇性 502</li>
+<li><code>Allowed memory size ... exhausted</code> 异常增多，且集中在几个来源 IP</li>
+<li>访问日志里出现「字段极多 &#x2F; multipart 段极多 &#x2F; 没有 Content-Length 的超大请求」——这正是打 618 的典型特征</li>
+<li>同一 IP 在短时间内触发大量 4xx&#x2F;5xx，紧接着服务短暂不可用</li>
+</ul>
+<h3 id="关于「直接拿-PoC-打一下验证」"><a href="#关于「直接拿-PoC-打一下验证」" class="headerlink" title="关于「直接拿 PoC 打一下验证」"></a>关于「直接拿 PoC 打一下验证」</h3><p><strong>别在线上做。</strong></p>
+<p>三个理由：第一，这个漏洞的利用效果本身包含<strong>进程崩溃</strong>（618 的路径就是内存损坏），拿生产流量去打，轻则 worker 崩一片，重则真的把自己打进去；第二，PoC 已广泛流传，攻击者也在扫描，你手动打的流量会混进真实攻击里，事后取证根本分不清；第三，这个漏洞的判定<strong>根本不需要 PoC</strong>——它是「版本号即判定」的类型，<code>8.3.35 &lt; 8.3.36</code>，结论就定了。</p>
+<p>真要验证，就在隔离环境里做：打快照、断外网、用公开的复现脚本跑一遍，观察是否出现 worker 崩溃或异常子进程，验完直接销毁快照。目的不是「证明能打穿」，而是「确认我的检测规则能看见它」。</p>
+<h2 id="六、修复：升级之外都是减速带"><a href="#六、修复：升级之外都是减速带" class="headerlink" title="六、修复：升级之外都是减速带"></a>六、修复：升级之外都是减速带</h2><h3 id="1-唯一正确的解药"><a href="#1-唯一正确的解药" class="headerlink" title="1. 唯一正确的解药"></a>1. 唯一正确的解药</h3><p>升级到 <strong>8.5.12 &#x2F; 8.4.27 &#x2F; 8.3.36 &#x2F; 8.2.35</strong> 之一。官方说得很直白：<strong>没有任何完整的缓解措施，升级是唯一安全的选择。</strong></p>
+<h3 id="2-按来源选路径"><a href="#2-按来源选路径" class="headerlink" title="2. 按来源选路径"></a>2. 按来源选路径</h3><table>
+<thead>
+<tr>
+<th>安装来源</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>发行版包</td>
+<td><code>apt upgrade</code> &#x2F; <code>dnf update</code>，发行版和 LTS 厂商提前拿到了补丁</td>
+</tr>
+<tr>
+<td>官方源码 &#x2F; Windows 二进制</td>
+<td>php.net 下载页</td>
+</tr>
+<tr>
+<td>容器镜像</td>
+<td><strong>重新构建镜像</strong>，滚动更新，不能只 restart</td>
+</tr>
+<tr>
+<td>自编译</td>
+<td>拉官方 tag 重新编译</td>
+</tr>
+<tr>
+<td><code>rpms.remirepo.net</code></td>
+<td>官方明确说<strong>当天不会有更新</strong>，建议换发行版源或源码编译</td>
+</tr>
+<tr>
+<td>PHP 8.1 及更早</td>
+<td>无官方修复。官方为 7.4 &#x2F; 8.0 &#x2F; 8.1 提供了最小化源码 backport 分支，供自行编译；否则升级到受支持分支</td>
+</tr>
+</tbody></table>
+<p>7.4 &#x2F; 8.0 &#x2F; 8.1 的 backport 分支在 php-src 仓库里，名字是 <code>PHP-7.4-CVE-2026-109618-109619</code> 这种格式，适合「必须留在老版本、但有能力自己编译」的场景。没这个能力的话，唯一的出路是升级。</p>
+<h3 id="3-升级之后必须重启（最常被跳过的一步）"><a href="#3-升级之后必须重启（最常被跳过的一步）" class="headerlink" title="3. 升级之后必须重启（最常被跳过的一步）"></a>3. 升级之后必须重启（最常被跳过的一步）</h3><ul>
+<li><strong>mod_php</strong>：重启 Apache</li>
+<li><strong>PHP-FPM</strong>：重启对应的 FPM 进程池</li>
+<li><strong>常驻 CLI</strong>（队列 worker、守护脚本）：逐个重启</li>
+<li><strong>容器</strong>：重建镜像 + 滚动更新</li>
+</ul>
+<p>再强调一次：<strong>不能靠 <code>php -v</code> 判断修复完成。</strong> 它反映的是磁盘上的二进制，与正在提供服务的进程无关。用第五节的「比时间」方法确认。</p>
+<h3 id="4-怎么确认真的修好了"><a href="#4-怎么确认真的修好了" class="headerlink" title="4. 怎么确认真的修好了"></a>4. 怎么确认真的修好了</h3><p>三条，缺一不可：</p>
+<ol>
+<li><strong>进程实际加载的版本</strong>——用「进程启动时间晚于二进制更新时间」确认，而不是 <code>php -v</code>。</li>
+<li><strong>业务回归</strong>——升级 PHP 小版本通常安全，但生产环境该做的回归还是要做。</li>
+<li><strong>资产清单全覆盖</strong>——对照第一步的清点表逐项销账。遗漏的实例必须单独登记为遗留风险，不能算「已修复」。</li>
+</ol>
+<h3 id="5-实在升不了：官方给的缓解清单"><a href="#5-实在升不了：官方给的缓解清单" class="headerlink" title="5. 实在升不了：官方给的缓解清单"></a>5. 实在升不了：官方给的缓解清单</h3><p>必须先说清楚：<strong>这些措施只降低特定攻击路径的暴露面，不能让安装变安全。</strong></p>
+<p>针对 CVE-2026-109618（OOM 路径）：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-comment">; 用 php_admin_value 设置，确保应用无法覆盖</span><br><span class="hljs-comment">; 放在 FPM pool 或 Apache 配置里，不要只写 php.ini</span><br>php_admin_value<span class="hljs-section">[memory_limit]</span> = -1<br></code></pre></td></tr></table></figure>
+
+<p>设成 <code>-1</code> 的目的是<strong>取消用户可控的内存限额失败</strong>，从根上拆掉扳机。但要检查：没有别的 pool、目录级配置或应用里的 <code>ini_set</code> 又把它设回来。另外，底层分配失败仍然可能走到那条路径，所以这不是安全保证。</p>
+<p>同时压低请求体：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-attr">post_max_size</span> = <span class="hljs-number">8</span>M        <span class="hljs-comment">; 不需要上传的应用</span><br><span class="hljs-attr">post_max_size</span> = <span class="hljs-number">32</span>M       <span class="hljs-comment">; 需要上传的应用</span><br><span class="hljs-attr">upload_max_filesize</span> = <span class="hljs-number">4</span>M  <span class="hljs-comment">; 必须小于 post_max_size</span><br></code></pre></td></tr></table></figure>
+
+<p>更稳的做法是在 Nginx &#x2F; 网关层限制<strong>解码后</strong>的请求大小、字段数量、multipart 段数、header 数量和嵌套深度，而且要覆盖<strong>没有 Content-Length 的 chunked 请求</strong>——只靠 PHP 层的大小限制会被分块绕开。</p>
+<p>针对 CVE-2026-109619（状态残留路径）：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-attr">session.upload_progress.enabled</span> = <span class="hljs-number">0</span><br><span class="hljs-comment">; PHP 8.5 额外加一行</span><br><span class="hljs-attr">fatal_error_backtraces</span> = <span class="hljs-number">0</span><br></code></pre></td></tr></table></figure>
+
+<p>关键是<strong>必须重启所有 worker</strong>，而且必须写在 <code>php.ini</code>、FPM pool 配置或服务器配置里——<code>ini_set()</code> 和 <code>.user.ini</code> 在请求解析前不生效，写了等于没写。</p>
+<p>另外两条：清掉那些「每次请求都会产生诊断输出」的废弃配置项（把 <code>error_reporting</code> 调低或加 <code>@</code> 压制是没用的，诊断本身已经发生了）；修掉攻击者可触达的致命错误和执行超时。</p>
+<h3 id="6-明确无效的动作"><a href="#6-明确无效的动作" class="headerlink" title="6. 明确无效的动作"></a>6. 明确无效的动作</h3><p>这几条别浪费时间：</p>
+<ul>
+<li>**<code>disable_functions</code>、<code>open_basedir</code>**：它们工作在脚本层。这个漏洞在原生代码层就劫持了执行流，压根到不了函数调用。</li>
+<li><strong>封 SSH 端口</strong>：入口是 80&#x2F;443，跟 22 没关系。</li>
+<li><strong>只靠 WAF</strong>：新漏洞没有现成规则，虚拟补丁只能当辅助。而且已经有报告说攻击者在调整载荷绕过规则。</li>
+<li><strong>把 <code>display_errors</code> 关掉</strong>：这不叫修复，叫「看不见」。</li>
+</ul>
+<h2 id="七、如果怀疑已经被打了"><a href="#七、如果怀疑已经被打了" class="headerlink" title="七、如果怀疑已经被打了"></a>七、如果怀疑已经被打了</h2><p>顺序别乱，先控损再取证：</p>
+<ol>
+<li><strong>隔离</strong>：把实例从负载均衡摘掉，或直接断外网。别急着重启——内存里的残留状态可能是唯一的证据。</li>
+<li><strong>留证</strong>：内存镜像、进程列表、网络连接、<code>/tmp</code> 和 web 目录的近期变更、cron 和 systemd 单元。</li>
+<li><strong>查落地</strong>：Web 目录里新出现的 <code>.php</code> 文件（尤其是文件名随机、内容混淆的）、<code>.htaccess</code> 改动、上传目录里的可执行文件。</li>
+<li><strong>查持久化</strong>：<code>crontab -l</code>、<code>/etc/cron.*</code>、systemd 单元、<code>~/.ssh/authorized_keys</code>、<code>.bashrc</code>。</li>
+<li><strong>改密</strong>：数据库账号、API Key、云厂商凭据、<code>.env</code> 里的所有东西——这些是最常见的窃取目标。改完再去查有没有被用来横向移动。</li>
+<li><strong>复盘</strong>：这次是「应用日志干净但 worker 崩过」还是「什么都没发现」？后者更危险，说明检测根本没覆盖到。</li>
+</ol>
+<h2 id="八、三条该记住的教训"><a href="#八、三条该记住的教训" class="headerlink" title="八、三条该记住的教训"></a>八、三条该记住的教训</h2><p><strong>第一，「这是个组件漏洞，不影响我们」的思路要改。</strong> 这次在解释器内核，下次可能是运行时、是 libc、是内核本身。判断影响面要看<strong>依赖层级</strong>，不是看有没有装某个插件。</p>
+<p><strong>第二，补丁窗口正在消失，甚至变成负数。</strong> 这次细节在补丁前泄露，攻击者可以和防守方同时起跑，甚至更早。这意味着「等公告、走流程、排期升级」的节奏已经不成立，<strong>资产台账 + 自动化升级通道</strong>才是真正的护城河。你不知道自己有哪些 PHP，就没法在 15 分钟内做出反应。</p>
+<p><strong>第三，遗留系统是长期出血点。</strong> PHP 7.4 至今仍是可识别版本中占比最高的单一分支。这些机器嵌在遗留应用、共享主机、被遗忘的虚拟机里，很多永远不会被打补丁。它们不构成「某一晚的危机」，而是构成一个<strong>以年为单位</strong>的风险面。</p>
+<p>至于 AI 在这件事里的角色——它既让漏洞被发现得更快，也让补丁被逆向成利用代码的速度更快。攻防两侧都在加速，唯一没加速的是很多组织的响应流程。</p>
+<hr>
+<p><strong>参考来源：</strong></p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://www.php.net/archive/2026.php#2026-10-21-5">PHP 官方安全公告（2026-10-21）</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w">GHSA-w8hw-w9fx-j79w：RCE via OOM corruption</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp">GHSA-6wmf-4rv5-p3rp：RCE via stale global state</a></li>
+<li><a target="_blank" rel="noopener" href="https://cert.europa.eu/publications/security-advisories/2026-018/">CERT-EU Security Advisory 2026-018</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cert.org.cn/publish/main/9/2026/20261022123700555224858/20261022123700555224858_.html">CNCERT：关于对 PHP2Shell 漏洞开展修复的风险提示（CNTA-2026-0006）</a></li>
+<li><a target="_blank" rel="noopener" href="https://nosec.org/home/detail/6739.html">NOSEC：PHP2Shell 影响面测绘分析与处置建议</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/NCSC-NL/php2shell">NCSC-NL：php2shell 处置信息仓库</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.techweb.com.cn/it/2026-10-22/2979902.shtml">TechWeb：AI 一小时挖穿十年老雷？</a></li>
+</ul>
+<blockquote>
+<p>本文信息截至 2026-10-22。漏洞处置以 PHP 官方公告和所在发行版&#x2F;厂商的安全通告为准，各厂商的补丁可用时间并不一致。</p>
+</blockquote>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" class="category-chain-item">网络安全</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E6%BC%8F%E6%B4%9E%E9%A2%84%E8%AD%A6/" class="print-no-link">#漏洞预警</a>
+      
+        <a href="/tags/PHP/" class="print-no-link">#PHP</a>
+      
+        <a href="/tags/RCE/" class="print-no-link">#RCE</a>
+      
+        <a href="/tags/%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94/" class="print-no-link">#应急响应</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>PHP2Shell 核弹漏洞全记录：CVSS 9.2 的 PHP 内核 RCE，如何发现、如何自查、如何修复</div>
+      <div>http://example.com/2026/10/22/PHP2Shell漏洞应急指南/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>John Doe</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月22日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/06/14/PyCharm%E6%BF%80%E6%B4%BB%E6%95%99%E7%A8%8B/" title="PyCharm激活教程">
+                        <span class="hidden-mobile">PyCharm激活教程</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"hPpMOaDBt9mWTjAEEUjkSxLY-gzGzoHsz","appKey":"HnSdNTA2kh2A874GAQ3P6IpG","path":"window.location.pathname","placeholder":"说点什么","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量
+        <span id="leancloud-site-pv"></span>
+        次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数
+        <span id="leancloud-site-uv"></span>
+        次
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
